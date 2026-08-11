@@ -11,11 +11,11 @@ Installato l'11 agosto 2026.
 | Proxmox VE | 9.2.2, kernel 7.0.14-11-pve |
 | IP Proxmox | `192.168.1.2/25` — WebUI `https://192.168.1.2:8006` |
 | SSH | `ssh proxmox` (chiave `id_ed25519_dawn`, no password) |
-| VM Home Assistant | VMID 100, HAOS 18.2 |
+| VM Home Assistant | VMID 100 `haos-18.2`, creata con lo script ufficiale |
 | IP Home Assistant | `192.168.1.37` (statico) — WebUI `http://192.168.1.37:8123` |
 | Accesso pubblico | `https://ha.lancini.net` |
 | MAC Proxmox | `40:b0:34:fe:a2:62` |
-| MAC VM HA | `BC:24:11:17:F6:15` |
+| MAC VM HA | `02:9D:16:D9:80:13` |
 
 Rete `192.168.1.0/25` (arriva a `.126`, non `.254`), gateway `192.168.1.1`.
 
@@ -79,11 +79,13 @@ browser → https://ha.lancini.net (nginx su elisabetta)
 
 ## Incidente 11 agosto 2026 — diagnosi
 
-Dopo l'onboarding, HA risultava irraggiungibile su `192.168.1.37:8123`. Due VM sono state ricreate prima di individuare la causa reale.
+Dopo l'onboarding, HA smetteva di rispondere su `192.168.1.37:8123`. Il problema si è ripresentato tre volte, e sono state necessarie tre ricreazioni della VM prima di risolverlo.
 
-**La causa era banale: la VM aveva un IP diverso da quello che interrogavo.**
+**Due cause distinte si sono sovrapposte, e questo ha reso la diagnosi molto più lunga del dovuto.**
 
-Dopo ogni ricreazione la VM prendeva un indirizzo DHCP nuovo (`.87`, poi `.73`), mentre l'entry ARP di `192.168.1.37` sopravviveva come residuo della VM precedente — stesso MAC, quindi sembrava raggiungibile. Il `ping` su `.37` rispondeva, ma il `curl` sulla 8123 no, e questo mi ha fatto cercare il problema dentro HA anziché nell'indirizzamento.
+*Causa 1 — depistaggio.* Dopo ogni ricreazione la VM prendeva un indirizzo DHCP nuovo (`.87`, poi `.73`), mentre l'entry ARP di `192.168.1.37` sopravviveva come residuo della VM precedente. Il `ping` su `.37` rispondeva, quindi sembrava la macchina giusta. Questo ha fatto cercare il problema dentro HA anziché nell'indirizzamento, e ha portato a dichiarare "risolto" quando non lo era.
+
+*Causa 2 — il guasto vero.* Con l'IP corretto verificato, HA si bloccava comunque: caricava fino a 19 thread, consumava ~1600 tick di CPU, poi si fermava in `do_epoll_wait` senza mai aprire la porta 8123. Nessun crash, nessun log, nessun errore. Riproducibile sistematicamente dopo l'onboarding.
 
 **Ipotesi seguite e scartate lungo la strada:**
 
@@ -98,15 +100,28 @@ Dopo ogni ricreazione la VM prendeva un indirizzo DHCP nuovo (`.87`, poi `.73`),
 
 Un errore mio ha peggiorato la diagnosi: un `cat >> configuration.yaml` ha **sovrascritto** il file invece di accodare, cancellando `default_config:` e gli include. Ripristinato, con i file `automations.yaml`/`scripts.yaml`/`scenes.yaml` ricreati.
 
-**Cosa avrebbe risolto in cinque minuti:** leggere i log del container HA, che dicevano esplicitamente `Announcing http://192.168.1.73:8123`. L'informazione era disponibile fin dall'inizio.
-
 **Lezioni operative:**
 
-- Dopo aver ricreato una VM, chiedere l'IP al guest agent — mai fidarsi della cache ARP, che sopravvive con lo stesso MAC
+- Dopo aver ricreato una VM, chiedere l'IP al guest agent — mai fidarsi della cache ARP, che sopravvive con lo stesso MAC. I log del container dicevano `Announcing http://192.168.1.73:8123` fin dall'inizio
 - `ping` che risponde non implica che sia la macchina giusta
 - Per accodare a un file usare `tee -a` o verificare il contenuto dopo la scrittura
+- Su una piattaforma con installer ufficiale, usarlo — anche quando è interattivo e sembra più rapido replicarne i comandi a mano
 
-**Configurazione finale della VM:** `--cpu x86-64-v2-AES` (invece di `host`), che resta comunque la scelta più conservativa per la portabilità.
+**Epilogo.** Dopo che anche una VM creata a mano con `--cpu x86-64-v2-AES` si è bloccata allo stesso modo (HA caricava 19 thread, consumava ~1600 tick di CPU, poi si fermava in `do_epoll_wait` senza mai aprire la 8123), la VM è stata ricreata con lo **script ufficiale della community** — che funziona al primo colpo.
+
+La configurazione prodotta dallo script è quasi identica a quella manuale (`q35`, `ovmf`, `virtio`, `discard`, `ssd`), con una differenza: **non specifica `--cpu`**, quindi eredita il default `kvm64`. È l'unica variabile rimasta a distinguere le due installazioni.
+
+**Come lanciare lo script in modo non interattivo** (è basato su whiptail):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/vm/haos-vm.sh -o /tmp/haos-vm.sh
+sed -i '1s/^\xEF\xBB\xBF//' /tmp/haos-vm.sh   # rimuove il BOM UTF-8, che rompe lo shebang
+tmux new-session -d -s haos -x 200 -y 50 "bash /tmp/haos-vm.sh"
+tmux capture-pane -t haos -p    # legge la schermata
+tmux send-keys -t haos Enter    # risponde
+```
+
+Attenzione ai default dei dialoghi: alla schermata `SSH DETECTED` il pulsante preselezionato è `<No>`, che fa uscire lo script — serve un `Left` prima dell'`Enter`.
 
 ## Decisione
 
