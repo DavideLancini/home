@@ -1,5 +1,48 @@
 # HOME — Home Assistant su mini PC
 
+## Stato installazione
+
+Installato l'11 agosto 2026.
+
+**Hardware:** HP EliteDesk 800 G2 DM 65W — i5-6400T (4 core), 7.6 GB RAM, NVMe 238 GB.
+
+| Componente | Valore |
+|---|---|
+| Proxmox VE | 9.2.2, kernel 7.0.14-11-pve |
+| IP Proxmox | `192.168.1.2/25` — WebUI `https://192.168.1.2:8006` |
+| SSH | `ssh proxmox` (chiave `id_ed25519_dawn`, no password) |
+| VM Home Assistant | VMID 100, HAOS 18.2 |
+| IP Home Assistant | `192.168.1.111` — WebUI `http://192.168.1.111:8123` |
+| MAC Proxmox | `40:b0:34:fe:a2:62` |
+| MAC VM HA | `BC:24:11:15:C9:2B` |
+
+Rete `192.168.1.0/25` (arriva a `.126`, non `.254`), gateway `192.168.1.1`.
+
+**Configurazione applicata:**
+
+- Repo `pve-no-subscription` (formato deb822), nag di subscription rimosso
+- `apt` forzato su IPv4 (`/etc/apt/apt.conf.d/99force-ipv4`) — l'IPv6 sull'host non riceve Router Advertisement
+- IPv4 preferito nella risoluzione dei nomi (`/etc/gai.conf`)
+- Timezone `Europe/Rome`
+- Wake-on-LAN persistente via `wol@nic0.service` (`Wake-on: g`)
+- VM HA con `onboot=1`, QEMU guest agent attivo
+- `tmux`, `ethtool`, `htop`, `iotop`, `lm-sensors` installati sull'host
+
+**Note sull'installazione:**
+
+- L'ISO Proxmox non fa boot UEFI su questo hardware: errore `relocation 0x41615252 is not implemented yet` (bug del boot ibrido HFS+). Risolto con **Ventoy**.
+- L'interfaccia di rete si chiama **`nic0`**, non `enp1s0` — nuovo schema di naming di Proxmox 9.
+- VT-x e VT-d/IOMMU già attivi nel BIOS (verificato via `dmesg | grep DMAR`), pronti per il passthrough iGPU di Frigate.
+
+**Da fare:**
+
+- [ ] Cambiare la password di root
+- [ ] DHCP reservation sul router per `40:b0:34:fe:a2:62` → `192.168.1.2`
+- [ ] DHCP reservation per `BC:24:11:15:C9:2B` → `192.168.1.111`
+- [ ] Onboarding Home Assistant (creazione utente admin)
+- [ ] BIOS: `After Power Loss` → *Power On* (Advanced → Power Management Options)
+- [ ] Accesso remoto (Tailscale o reverse tunnel SSH)
+
 ## Decisione
 
 Proxmox VE bare-metal sul mini PC, Home Assistant OS come VM.
