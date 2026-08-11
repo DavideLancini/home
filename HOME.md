@@ -13,8 +13,9 @@ Installato l'11 agosto 2026.
 | SSH | `ssh proxmox` (chiave `id_ed25519_dawn`, no password) |
 | VM Home Assistant | VMID 100, HAOS 18.2 |
 | IP Home Assistant | `192.168.1.37` (statico) — WebUI `http://192.168.1.37:8123` |
+| Accesso pubblico | `https://ha.lancini.net` |
 | MAC Proxmox | `40:b0:34:fe:a2:62` |
-| MAC VM HA | `BC:24:11:15:C9:2B` |
+| MAC VM HA | `BC:24:11:17:F6:15` |
 
 Rete `192.168.1.0/25` (arriva a `.126`, non `.254`), gateway `192.168.1.1`.
 
@@ -45,14 +46,46 @@ Rete `192.168.1.0/25` (arriva a `.126`, non `.254`), gateway `192.168.1.1`.
 - L'interfaccia di rete si chiama **`nic0`**, non `enp1s0` — nuovo schema di naming di Proxmox 9.
 - VT-x e VT-d/IOMMU già attivi nel BIOS (verificato via `dmesg | grep DMAR`), pronti per il passthrough iGPU di Frigate.
 
+## Accesso remoto — implementazione
+
+Home Assistant è pubblicato su `https://ha.lancini.net` tramite reverse tunnel SSH verso il VPS `elisabetta` (`87.106.233.97`), che fa da reverse proxy.
+
+```
+browser → https://ha.lancini.net (nginx su elisabetta)
+        → 127.0.0.1:8123 (capo del tunnel)
+        → tunnel SSH
+        → 192.168.1.37:8123 (HA in LAN)
+```
+
+**Su Proxmox** — `/etc/systemd/system/ha-tunnel.service`, `Restart=always`, keepalive ogni 30s. Usa la chiave dedicata `/root/.ssh/id_ed25519_tunnel` (separata dalle altre, così è revocabile da sola).
+
+**Su elisabetta:**
+
+- `/etc/nginx/sites-available/ha.lancini.net` — proxy verso `127.0.0.1:8123` con header WebSocket (`Upgrade`/`Connection`), senza i quali la UI di HA resta congelata
+- `/etc/nginx/sites-available/ha-acme` — serve `/.well-known/acme-challenge/` in HTTP senza redirect. Necessario perché `00-redirect-80-to-443` manderebbe la challenge su HTTPS, e il rinnovo fallirebbe
+- Chiave del tunnel in `~/.ssh/authorized_keys` con `restrict,port-forwarding` — può solo inoltrare porte, niente shell
+- Certificato Let's Encrypt, rinnovo automatico verificato con `--dry-run`
+
+**In Home Assistant** — `configuration.yaml` con `use_x_forwarded_for: true` e `trusted_proxies`. Senza, HA risponde `400` a ogni richiesta proxata.
+
 **Da fare:**
 
 - [x] DHCP reservation sul router per `40:b0:34:fe:a2:62` → `192.168.1.2`
 - [x] IP statico Home Assistant → `192.168.1.37`
 - [x] BIOS: `After Power Loss` → *Power On*
+- [x] Accesso remoto pubblico via `ha.lancini.net`
 - [ ] Onboarding Home Assistant (creazione utente admin)
-- [ ] Accesso remoto (Tailscale o reverse tunnel SSH)
 - [ ] Chiavetta Zigbee + passthrough USB alla VM
+
+## Incidente 11 agosto 2026 — VM ricreata
+
+La prima VM è diventata irrecuperabile dopo uno spegnimento col pulsante di accensione del mini PC (`Power key pressed short` nei log — non un crash).
+
+Sintomi: il Supervisor riportava il Core come `RUNNING` (connesso via Unix socket `/run/os/core.sock`), ma la porta 8123 non era in ascolto e i log del container erano vuoti. `ha core start` rispondeva `"Home Assistant is already running!"` senza fare nulla. Né `ha core restart` né il riavvio completo della VM hanno risolto.
+
+Risolto ricreando la VM da zero — nessuna perdita, l'onboarding non era ancora stato fatto. Il MAC è cambiato di conseguenza.
+
+**Lezione:** spegnere il mini PC dal pulsante può corrompere lo stato del Supervisor. Usare `qm shutdown 100` o il menu di HA.
 
 ## Decisione
 
