@@ -12,7 +12,7 @@ Installato l'11 agosto 2026.
 | IP Proxmox | `192.168.1.2/25` — WebUI `https://192.168.1.2:8006` |
 | SSH | `ssh proxmox` (chiave `id_ed25519_dawn`, no password) |
 | VM Home Assistant | VMID 100 `haos-18.2`, creata con lo script ufficiale |
-| IP Home Assistant | `192.168.1.37` (statico) — WebUI `http://192.168.1.37:8123` |
+| IP Home Assistant | `192.168.1.37` (statico) — WebUI `http://192.168.1.37/` (**porta 80**, non 8123) |
 | Accesso pubblico | `https://ha.lancini.net` |
 | MAC Proxmox | `40:b0:34:fe:a2:62` |
 | MAC VM HA | `02:9D:16:D9:80:13` |
@@ -54,8 +54,10 @@ Home Assistant è pubblicato su `https://ha.lancini.net` tramite reverse tunnel 
 browser → https://ha.lancini.net (nginx su elisabetta)
         → 127.0.0.1:8123 (capo del tunnel)
         → tunnel SSH
-        → 192.168.1.37:8123 (HA in LAN)
+        → 192.168.1.37:80 (HA in LAN — porta 80, non 8123)
 ```
+
+**La porta è 80.** Questa installazione di HAOS serve l'interfaccia sulla porta 80, non sulla 8123 canonica. Verificarlo sempre con `netstat`/`curl` prima di dare per scontata la 8123.
 
 **Su Proxmox** — `/etc/systemd/system/ha-tunnel.service`, `Restart=always`, keepalive ogni 30s. Usa la chiave dedicata `/root/.ssh/id_ed25519_tunnel` (separata dalle altre, così è revocabile da sola).
 
@@ -85,7 +87,11 @@ Dopo l'onboarding, HA smetteva di rispondere su `192.168.1.37:8123`. Il problema
 
 *Causa 1 — depistaggio.* Dopo ogni ricreazione la VM prendeva un indirizzo DHCP nuovo (`.87`, poi `.73`), mentre l'entry ARP di `192.168.1.37` sopravviveva come residuo della VM precedente. Il `ping` su `.37` rispondeva, quindi sembrava la macchina giusta. Questo ha fatto cercare il problema dentro HA anziché nell'indirizzamento, e ha portato a dichiarare "risolto" quando non lo era.
 
-*Causa 2 — il guasto vero.* Con l'IP corretto verificato, HA si bloccava comunque: caricava fino a 19 thread, consumava ~1600 tick di CPU, poi si fermava in `do_epoll_wait` senza mai aprire la porta 8123. Nessun crash, nessun log, nessun errore. Riproducibile sistematicamente dopo l'onboarding.
+*Causa 2 — il guasto vero: **la porta era sbagliata**.* Questa installazione di HAOS serve l'interfaccia sulla **porta 80**, non sulla 8123. Ogni verifica fatta su `:8123` — `curl`, `netstat`, il tunnel SSH — falliva correttamente, perché quella porta non è mai stata in ascolto. Home Assistant ha sempre funzionato.
+
+L'errore è stato dare per scontata la porta canonica invece di verificarla, e interpretare `netstat` che non trovava la 8123 come "HA non parte" anziché "HA ascolta altrove". Da lì una lunga sequenza di diagnosi sbagliate: segfault (il dump esisteva davvero, ma era la conseguenza del `SIGABRT` inviato da me), CPU incompatibile, database corrotto, RAM difettosa. Tre onboarding e quattro VM distrutte per nulla.
+
+Risolto puntando il tunnel su `:80` e rimuovendo gli header `X-Forwarded-*` da nginx, che HA rifiutava con `400`.
 
 **Ipotesi seguite e scartate lungo la strada:**
 
