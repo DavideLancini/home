@@ -77,15 +77,36 @@ browser → https://ha.lancini.net (nginx su elisabetta)
 - [ ] Onboarding Home Assistant (creazione utente admin)
 - [ ] Chiavetta Zigbee + passthrough USB alla VM
 
-## Incidente 11 agosto 2026 — VM ricreata
+## Incidente 11 agosto 2026 — diagnosi
 
-La prima VM è diventata irrecuperabile dopo uno spegnimento col pulsante di accensione del mini PC (`Power key pressed short` nei log — non un crash).
+Dopo l'onboarding, HA risultava irraggiungibile su `192.168.1.37:8123`. Due VM sono state ricreate prima di individuare la causa reale.
 
-Sintomi: il Supervisor riportava il Core come `RUNNING` (connesso via Unix socket `/run/os/core.sock`), ma la porta 8123 non era in ascolto e i log del container erano vuoti. `ha core start` rispondeva `"Home Assistant is already running!"` senza fare nulla. Né `ha core restart` né il riavvio completo della VM hanno risolto.
+**La causa era banale: la VM aveva un IP diverso da quello che interrogavo.**
 
-Risolto ricreando la VM da zero — nessuna perdita, l'onboarding non era ancora stato fatto. Il MAC è cambiato di conseguenza.
+Dopo ogni ricreazione la VM prendeva un indirizzo DHCP nuovo (`.87`, poi `.73`), mentre l'entry ARP di `192.168.1.37` sopravviveva come residuo della VM precedente — stesso MAC, quindi sembrava raggiungibile. Il `ping` su `.37` rispondeva, ma il `curl` sulla 8123 no, e questo mi ha fatto cercare il problema dentro HA anziché nell'indirizzamento.
 
-**Lezione:** spegnere il mini PC dal pulsante può corrompere lo stato del Supervisor. Usare `qm shutdown 100` o il menu di HA.
+**Ipotesi seguite e scartate lungo la strada:**
+
+| Ipotesi | Perché scartata |
+|---|---|
+| Spegnimento col pulsante (`Power key pressed short`) | Il problema si è ripresentato senza spegnimenti |
+| Blocco `http:`/`trusted_proxies` errato | Rimosso, nessun cambiamento |
+| Database SQLite corrotto (WAL 659 KB, `.db` 4 KB) | WAL spostato, nessun cambiamento |
+| Integrazione Bluetooth su VM senza hardware | Non presente in `core.config_entries` |
+| Configurazione o integrazioni | La recovery mode le bypassa e il sintomo restava |
+| `--cpu host` incompatibile | Cambiato in `x86-64-v2-AES`, ma non era quello |
+
+Un errore mio ha peggiorato la diagnosi: un `cat >> configuration.yaml` ha **sovrascritto** il file invece di accodare, cancellando `default_config:` e gli include. Ripristinato, con i file `automations.yaml`/`scripts.yaml`/`scenes.yaml` ricreati.
+
+**Cosa avrebbe risolto in cinque minuti:** leggere i log del container HA, che dicevano esplicitamente `Announcing http://192.168.1.73:8123`. L'informazione era disponibile fin dall'inizio.
+
+**Lezioni operative:**
+
+- Dopo aver ricreato una VM, chiedere l'IP al guest agent — mai fidarsi della cache ARP, che sopravvive con lo stesso MAC
+- `ping` che risponde non implica che sia la macchina giusta
+- Per accodare a un file usare `tee -a` o verificare il contenuto dopo la scrittura
+
+**Configurazione finale della VM:** `--cpu x86-64-v2-AES` (invece di `host`), che resta comunque la scelta più conservativa per la portabilità.
 
 ## Decisione
 
