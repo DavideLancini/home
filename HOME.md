@@ -12,11 +12,22 @@ Installato l'11 agosto 2026.
 | IP Proxmox | `192.168.1.2/25` — WebUI `https://192.168.1.2:8006` |
 | SSH | `ssh proxmox` (chiave `id_ed25519_dawn`, no password) |
 | VM Home Assistant | VMID 100, HAOS 18.2 |
-| IP Home Assistant | `192.168.1.111` — WebUI `http://192.168.1.111:8123` |
+| IP Home Assistant | `192.168.1.37` (statico) — WebUI `http://192.168.1.37:8123` |
 | MAC Proxmox | `40:b0:34:fe:a2:62` |
 | MAC VM HA | `BC:24:11:15:C9:2B` |
 
 Rete `192.168.1.0/25` (arriva a `.126`, non `.254`), gateway `192.168.1.1`.
+
+**Piano di indirizzamento:**
+
+| Range | Uso |
+|---|---|
+| `.1` | Gateway/router |
+| `.2` | Proxmox (reservation) |
+| `.3` | Occupato (MAC `a8:fa:d8:3b:e5:0b`, dispositivo non identificato) |
+| `.4`–`.36` | Riservati nel modem |
+| `.37`+ | Liberi per assegnazione statica — **`.37` = Home Assistant** |
+| `.50`–`.126` | Pool DHCP |
 
 **Configurazione applicata:**
 
@@ -36,12 +47,12 @@ Rete `192.168.1.0/25` (arriva a `.126`, non `.254`), gateway `192.168.1.1`.
 
 **Da fare:**
 
-- [ ] Cambiare la password di root
-- [ ] DHCP reservation sul router per `40:b0:34:fe:a2:62` → `192.168.1.2`
-- [ ] DHCP reservation per `BC:24:11:15:C9:2B` → `192.168.1.111`
+- [x] DHCP reservation sul router per `40:b0:34:fe:a2:62` → `192.168.1.2`
+- [x] IP statico Home Assistant → `192.168.1.37`
+- [x] BIOS: `After Power Loss` → *Power On*
 - [ ] Onboarding Home Assistant (creazione utente admin)
-- [ ] BIOS: `After Power Loss` → *Power On* (Advanced → Power Management Options)
 - [ ] Accesso remoto (Tailscale o reverse tunnel SSH)
+- [ ] Chiavetta Zigbee + passthrough USB alla VM
 
 ## Decisione
 
