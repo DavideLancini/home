@@ -49,25 +49,110 @@ Che sia stato *quello* a risolvere l'incidente dell'11 agosto non è dimostrato 
 
 Procedura in [RUNBOOK.md](RUNBOOK.md).
 
-## Smart plug Tuya: firmware locale — da decidere
+## Smart plug Tuya: firmware locale
 
-Le smart plug sono **LSC Smart Connect** di Action, con firmware aggiornato a `v1.1.17`. L'obiettivo è farle funzionare senza passare dai server Tuya.
+Le smart plug sono **LSC Smart Connect** di Action. L'obiettivo è farle funzionare senza passare dai server Tuya.
 
-Il chip è **Beken BK7231N/T** (moduli CB2S/CB3S/WB2S), non ESP8266: quindi né ESPHome né Tasmota, il firmware alternativo è **OpenBeken**.
+Il chip è **Beken BK7231N**, non ESP8266. Questo esclude ESPHome e Tasmota: per usare Tasmota il modulo andrebbe fisicamente sostituito, mentre **OpenBeken** gira sul BK7231N com'è.
 
-Tre strade:
+### Le due plug
+
+| | Plug A | Plug B |
+|---|---|---|
+| Firmware | `v1.1.17` (da `v1.0.4`) | `v1.0.0(1.0.2)`, MCU `v1.0.2` |
+| Modello | da identificare | **3202087** |
+| Cloudcutter OTA | improbabile — Tuya ha patchato a febbraio 2022 | **plausibile** — `v1.0.0` è verosimilmente anteriore |
+
+### Plug B (3202087) — hardware documentato
+
+| | |
+|---|---|
+| Modulo | CB2S (BK7231N) |
+| Misuratore energia | BL0937 |
+| PCB | WP02GE-F |
+| Case | a clip, non a viti |
+
+**Mappatura GPIO:**
+
+| Pin | Funzione |
+|---|---|
+| P6 | LED canale 1 |
+| P7 | Pulsante |
+| P8 | **Relè** |
+| P10 | LED WiFi |
+| P11 | BL0937 SEL |
+| P24 | BL0937 VI |
+| P26 | BL0937 ELE |
+
+Config equivalente: `{"NAME":"LSC Smart Power Plug with Energy Monitoring","GPIO":[0,2624,1,288,32,544,1,1,2656,224,2720,1,1,1],"FLAG":0,"BASE":18}`
+
+La dicitura "Modulo MCU" nel firmware **non indica un TuyaMCU**: il BL0937 è un chip di misura, non un microcontrollore che pilota il relè. Si usa OpenBeken standard, non la modalità TuyaMCU.
+
+### Metodi
 
 | Metodo | Cosa comporta | Rischio |
 |---|---|---|
-| **Tuya-Cloudcutter** (OTA) | Nessun cacciavite, ma Tuya ha patchato l'exploit a febbraio 2022 e `v1.1.17` è quasi certamente successiva | Nullo — se fallisce, non danneggia |
-| **Flash seriale** | Aprire la plug, saldare GND/3.3V/RX/TX, adattatore USB-TTL | Medio — 230 V, da fare scollegata |
+| **Tuya-Cloudcutter** (OTA) | Nessun cacciavite. Serve un profilo con gli offset della build esatta | Nullo — se fallisce non danneggia |
+| **Flash seriale** | Aprire la plug, FTDI 3.3 V su RX/TX/GND, **CEN a massa** per la modalità programmazione | Medio — 230 V, da fare scollegata |
 | **LocalTuya** | Nessun flash: si estraggono le chiavi e HA parla in locale | Nullo |
 
-**Da provare per primo: LocalTuya.** Dà il funzionamento locale senza aprire nulla né rischiare di rendere inservibili le plug. Il flash resta possibile in seguito.
+Nota per il flash seriale: il BK7231 assorbe oltre 50 mA di picco e molti adattatori USB-TTL economici non reggono — serve alimentazione 3.3 V esterna. Fare comunque prima un backup del firmware originale, che rivela la mappa GPIO della specifica revisione.
 
-Nota per il flash seriale: il BK7231 assorbe oltre 50 mA di picco e molti adattatori USB-TTL economici non reggono — serve alimentazione 3.3 V esterna. Conviene fare prima un backup del firmware originale, che rivela la mappa GPIO della specifica revisione hardware.
+### Tentativo Cloudcutter del 12 agosto 2026 — fallito
 
-Riferimenti: [OpenBK LSC Action](https://github.com/hkiam/OpenBK_LSC_Action1681PG) · [Tuya-CloudCutter](https://github.com/tuya-cloudcutter/tuya-cloudcutter) · [Teardown LSC 3202087](https://www.elektroda.com/news/news4087228.html)
+**Esito: entrambe le plug sono vulnerabili, ma nessun profilo nel database corrisponde alle loro build.**
+
+L'exploit riesce sempre (`Exploit run, saved device config too!`), è il flash successivo a fallire: gli offset `address_finish` e `address_ssid` sono specifici della singola build del firmware.
+
+Profili provati, tutti falliti:
+
+| Profilo | Su quale plug |
+|---|---|
+| `oem-bk7231n-safe-dltj-plug-1.0.2` | B — scelto per somiglianza, in realtà è un misuratore EARU con TA |
+| `lsc-2578685-970766-smart-plug-cb2s-v1.1.8` | A |
+| `lsc-2578685-970766-smart-plug-cb2s-v1.1.7` | A |
+
+Le ultime due sono **le uniche prese LSC BK7231N in tutto il database** (777 dispositivi, 372 profili). L'unica altra entry LSC per prese è la `3202087` v1.3.5, che però è BK7231T — chip incompatibile.
+
+**Identificazione dei dispositivi in rete.** Uno scan `tinytuya` ha trovato due dispositivi Tuya:
+
+| IP | MAC | `productKey` | Identificazione |
+|---|---|---|---|
+| `192.168.1.15` | `fc:3c:d7:b3:7c:c3` | `keyjup78v54myhan` | **Plug A** — corrisponde ai 5 profili `oem_bk7231n_plug` 1.1.4–1.1.8 |
+| `192.168.1.10` | `d8:fc:92:42:0e:08` | `keykmm3rjyqy5r8p` | Sconosciuto — nessun profilo nel database. Probabilmente una lampadina |
+
+La `productKey` della plug A coincide esattamente con quella della famiglia `oem_bk7231n_plug`, quindi la famiglia firmware è certa: manca solo il profilo per la build `1.1.17`.
+
+**Chiavi estratte** (temporanee, generate da Cloudcutter — **non** utilizzabili per LocalTuya, che richiede le `local_key` reali dall'account Tuya):
+
+```
+Plug A: uuid=ryhF64ItQqYT  local_key=HzJwr9btGj5M3hCM
+Plug B: uuid=t6ccXvSNh5Te  local_key=2rfiUwDwvTmv0cGo
+```
+
+**Conseguenza da ricordare:** l'exploit ha scollegato entrambe le plug dal cloud Tuya. Non rispondono più all'app SmartLife finché non vengono riaccoppiate.
+
+### Cosa resta da fare
+
+| Opzione | Costo | Note |
+|---|---|---|
+| **USB-TTL** | ~5 € | Flash diretto, deterministico. Salta Cloudcutter. Mappatura GPIO già nota |
+| **ESP32 + Lightleak** | ~5 € | Dump wireless della flash → costruzione profilo → flash. Tre fasi, la seconda difficile. L'ESP32 resta utile per ESPHome |
+| **Issue sul repository** | gratis | Serve comunque un dump per costruire il profilo |
+
+Il Raspberry Pico 2 **non è utilizzabile** per Lightleak: serve un chip supportato da LibreTiny (ESP32/ESP8266/BK7231/RTL8710B), e l'RP2350 non lo è — nemmeno nella variante Pico 2 W.
+
+### Ambiente Cloudcutter — note operative
+
+- Repository clonato in `~/6Local/tuya-cloudcutter`
+- Richiede **Docker** e un **adattatore WiFi dedicato** con modalità AP. Il Sitecom WL-608 (`rt2800usb`) funziona ma è 802.11g e si è scollegato spontaneamente una volta
+- Occupa la **porta 53**: va fermato `systemd-resolved` insieme ai suoi socket (`systemd-resolved-monitor.socket`, `systemd-resolved-varlink.socket`, altrimenti riparte), sostituendo `/etc/resolv.conf` con un DNS diretto
+- Il flag `-p` vuole il **device slug**, non il profile slug
+- Se un run si interrompe resta un container orfano: `sudo docker rm -f cloudcutter`
+- Non è pilotabile via `tmux send-keys`: Docker rifiuta il TTY e si blocca su *"Loading options"*. Va lanciato da un terminale interattivo vero
+- Per il flash serve la **modalità AP** (lampeggio lento, crea la rete `SmartLife-XXXX`), non la EZ (lampeggio veloce, non crea nulla)
+
+Riferimenti: [Teardown 3202087](https://www.elektroda.com/news/news4087228.html) · [Template 3202087](https://templates.blakadder.com/lsc_smart_connect_3202087.html) · [Tuya-CloudCutter](https://github.com/tuya-cloudcutter/tuya-cloudcutter) · [OpenBK LSC Action](https://github.com/hkiam/OpenBK_LSC_Action1681PG)
 
 ## Zigbee preferito a WiFi per i sensori
 
