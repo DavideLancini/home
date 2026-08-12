@@ -145,9 +145,13 @@ Il `--dry-run` può restare appeso e tenere un lock; in quel caso il tentativo s
 
 ## Backup
 
-Ancora da configurare. Due livelli, complementari:
+**Nessun backup è attivo, per scelta** — vedi [CONFIGURATION.md](CONFIGURATION.md).
 
-- **Home Assistant** — Impostazioni → Sistema → Backup, con copia su storage esterno
-- **Proxmox** — Datacenter → Backup, job schedulato
+Per crearne uno manuale prima di una modifica rischiosa:
 
-Il backup della VM non sostituisce quello di HA: il primo ripristina la macchina, il secondo la configurazione domotica.
+```bash
+ssh proxmox 'qm guest exec 100 --timeout 600 -- /usr/bin/ha backups new --name "prima-di-<cosa>"'
+ssh proxmox 'qm guest exec 100 --timeout 60 -- /usr/bin/ha backups list'
+```
+
+Resta dentro la VM, quindi non protegge da un guasto del disco.

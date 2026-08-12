@@ -82,31 +82,25 @@ curl -X POST -H "Authorization: Bearer $TOKEN" \
   http://192.168.1.37/api/services/automation/reload
 ```
 
-## Backup
+## Backup — nessuno, per scelta
 
-Due livelli.
+**Non è attivo alcun backup**, né in Home Assistant né su Proxmox. Decisione presa il 12 agosto 2026.
 
-**Nella VM** — Home Assistant tiene i suoi backup in `/mnt/data/supervisor/backup`, sullo stesso disco virtuale della VM. Se quello si corrompe, spariscono anche i backup.
+Era stato configurato un job notturno che estraeva i backup dalla VM verso l'host, ma è stato rimosso: entrambe le copie finivano sullo stesso disco NVMe, quindi proteggevano da una VM corrotta ma non da un guasto hardware. Poco valore per lo spazio occupato.
 
-**Sull'host** — `/usr/local/bin/ha-backup-pull.sh` (sorgente in [scripts/](scripts/)) crea un backup nella VM, lo estrae e lo salva in `/var/lib/vz/dump/ha-backups` sull'host Proxmox. Tiene 14 copie sull'host e 3 nella VM.
+`elisabetta` non è utilizzabile come destinazione: è al **92% di occupazione**, con circa 10 GB liberi. Riempirla farebbe cadere i servizi che ci girano.
 
-Lanciato da `ha-backup-pull.timer` ogni notte alle 3:30, con `Persistent=true` così recupera l'esecuzione se il mini PC era spento.
+**Conseguenza da tenere presente:** un errore di configurazione, un aggiornamento andato male o un guasto al disco comportano rifare tutto da capo — onboarding, aree, dispositivi, automazioni.
+
+Quando servirà, le opzioni sono un disco USB collegato al mini PC, spazio su un altro server, o un servizio cloud via `rclone`.
+
+Per un backup manuale occasionale:
 
 ```bash
-ssh proxmox 'systemctl list-timers ha-backup-pull.timer'   # prossima esecuzione
-ssh proxmox '/usr/local/bin/ha-backup-pull.sh'             # esecuzione manuale
-ssh proxmox 'ls -lh /var/lib/vz/dump/ha-backups/'          # cosa c'è
+ssh proxmox 'qm guest exec 100 --timeout 600 -- /usr/bin/ha backups new --name "prima-di-<cosa>"'
 ```
 
-**Nota sull'estrazione:** avviene via `qm guest exec` con codifica base64, perché il canale del guest agent non gestisce dati binari. Funziona, ma è lento su file grandi: quando i backup cresceranno, converrà passare a un `rsync` verso l'host.
-
-### Un backup davvero esterno manca ancora
-
-Entrambe le copie vivono sullo stesso disco NVMe. Un guasto hardware le porterebbe via tutte.
-
-`elisabetta` non è adatta come destinazione: è al **92% di occupazione**, con soli 10 GB liberi. Riempirla farebbe cadere i servizi che ci girano.
-
-Opzioni da valutare: un disco USB collegato al mini PC, uno spazio su un altro server, o un servizio cloud con `rclone`.
+Utile prima di modifiche rischiose. Resta comunque dentro la VM.
 
 ## API
 

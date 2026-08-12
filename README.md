@@ -27,12 +27,13 @@ Domotica di casa: Home Assistant su un mini PC con Proxmox, accessibile da inter
 
 Base funzionante dall'11 agosto 2026: Proxmox 9.2.2, Home Assistant OS 18.2, accesso remoto attivo.
 
-Configurati: aree, presenza dal telefono, notifiche push, backup notturno sull'host.
+Configurati: aree, presenza dal telefono, notifiche push, quattro automazioni.
+
+**Nessun backup attivo, per scelta** — vedi [CONFIGURATION.md](CONFIGURATION.md).
 
 **Prossimi passi:**
 
 - [ ] Chiavetta Zigbee + passthrough USB alla VM
 - [ ] Sensori temperatura nelle stanze principali
 - [ ] Smart plug per condizionatori ed elettrodomestici (valutare firmware locale — vedi [DECISIONS.md](DECISIONS.md))
-- [ ] Backup su supporto davvero esterno: quelli attuali stanno tutti sullo stesso disco
 - [ ] Integrazione dedicata per la smart TV (ora solo DLNA)
