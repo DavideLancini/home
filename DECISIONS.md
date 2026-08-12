@@ -49,6 +49,26 @@ Che sia stato *quello* a risolvere l'incidente dell'11 agosto non è dimostrato 
 
 Procedura in [RUNBOOK.md](RUNBOOK.md).
 
+## Smart plug Tuya: firmware locale — da decidere
+
+Le smart plug sono **LSC Smart Connect** di Action, con firmware aggiornato a `v1.1.17`. L'obiettivo è farle funzionare senza passare dai server Tuya.
+
+Il chip è **Beken BK7231N/T** (moduli CB2S/CB3S/WB2S), non ESP8266: quindi né ESPHome né Tasmota, il firmware alternativo è **OpenBeken**.
+
+Tre strade:
+
+| Metodo | Cosa comporta | Rischio |
+|---|---|---|
+| **Tuya-Cloudcutter** (OTA) | Nessun cacciavite, ma Tuya ha patchato l'exploit a febbraio 2022 e `v1.1.17` è quasi certamente successiva | Nullo — se fallisce, non danneggia |
+| **Flash seriale** | Aprire la plug, saldare GND/3.3V/RX/TX, adattatore USB-TTL | Medio — 230 V, da fare scollegata |
+| **LocalTuya** | Nessun flash: si estraggono le chiavi e HA parla in locale | Nullo |
+
+**Da provare per primo: LocalTuya.** Dà il funzionamento locale senza aprire nulla né rischiare di rendere inservibili le plug. Il flash resta possibile in seguito.
+
+Nota per il flash seriale: il BK7231 assorbe oltre 50 mA di picco e molti adattatori USB-TTL economici non reggono — serve alimentazione 3.3 V esterna. Conviene fare prima un backup del firmware originale, che rivela la mappa GPIO della specifica revisione hardware.
+
+Riferimenti: [OpenBK LSC Action](https://github.com/hkiam/OpenBK_LSC_Action1681PG) · [Tuya-CloudCutter](https://github.com/tuya-cloudcutter/tuya-cloudcutter) · [Teardown LSC 3202087](https://www.elektroda.com/news/news4087228.html)
+
 ## Zigbee preferito a WiFi per i sensori
 
 Per sensori e attuatori, Zigbee via Zigbee2MQTT è preferibile a dispositivi WiFi/Tuya:
