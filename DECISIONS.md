@@ -130,7 +130,7 @@ Plug A: uuid=ryhF64ItQqYT  local_key=HzJwr9btGj5M3hCM
 Plug B: uuid=t6ccXvSNh5Te  local_key=2rfiUwDwvTmv0cGo
 ```
 
-**Conseguenza da ricordare:** l'exploit ha scollegato entrambe le plug dal cloud Tuya. Non rispondono più all'app SmartLife finché non vengono riaccoppiate.
+**Le plug non sono state modificate.** La fase `Exploit run, saved device config too!` estrae solo la configurazione: lo scollegamento dal cloud avviene nell'opzione 1 dello script ("Detach from the cloud"), che non è mai stata usata — abbiamo sempre scelto l'opzione 2 (flash), fallita prima di scrivere alcunché. Entrambe le plug continuano a funzionare normalmente con l'app SmartLife.
 
 ### Cosa resta da fare
 
