@@ -1,0 +1,119 @@
+# Card picture-elements per la dashboard di Home Assistant.
+#
+# Sovrappone stati e pulsanti alla planimetria dell'appartamento.
+# L'immagine dev'essere in /config/www/planimetria.png (servita come
+# /local/planimetria.png) — HA registra quella cartella solo al riavvio.
+#
+# Per usarla: dashboard → Modifica → Aggiungi card → Manuale → incolla.
+#
+# Le coordinate sono percentuali sull'immagine (1387x1298):
+#   Camera      x 4-41%   y 3-40%
+#   Bagno       x 41-58%  y 17-40%
+#   Salotto     x 59-96%  y 14-65%
+#   Cameretta   x 4-31%   y 41-74%
+#   Corridoio   x 32-48%  y 41-74%
+#   Sgabuzzino  x 48-58%  y 51-65%
+#   Ingresso    x 48-72%  y 66-87%
+#   Cucina      x 14-47%  y 76-96%
+
+type: picture-elements
+image: /local/planimetria.png
+elements:
+  # ---- Robot aspirapolvere: stato e batteria ----
+  - type: state-icon
+    entity: vacuum.silvio
+    title: Silvio
+    style:
+      top: 30%
+      left: 77%
+      "--mdc-icon-size": 40px
+    tap_action:
+      action: more-info
+
+  - type: state-label
+    entity: sensor.silvio_batteria
+    suffix: "%"
+    style:
+      top: 37%
+      left: 77%
+      font-size: 13px
+      color: "#2c3e50"
+      background: rgba(255,255,255,0.75)
+      border-radius: 6px
+      padding: 2px 6px
+
+  # ---- Stanza in cui si trova il robot ----
+  - type: state-label
+    entity: sensor.silvio_current_room
+    prefix: "Silvio: "
+    style:
+      top: 6%
+      left: 77%
+      font-size: 13px
+      color: "#2c3e50"
+      background: rgba(255,255,255,0.8)
+      border-radius: 6px
+      padding: 3px 8px
+
+  # ---- TV in salotto ----
+  - type: state-icon
+    entity: media_player.tv_del_soggiorno
+    title: TV
+    style:
+      top: 52%
+      left: 88%
+      "--mdc-icon-size": 34px
+    tap_action:
+      action: more-info
+
+  # ---- Google Home Mini in cucina ----
+  - type: state-icon
+    entity: media_player.cucina
+    title: Google Home Mini
+    style:
+      top: 86%
+      left: 28%
+      "--mdc-icon-size": 34px
+    tap_action:
+      action: more-info
+
+  # ---- Presenza: icona all'ingresso ----
+  - type: state-icon
+    entity: person.davide
+    title: Davide
+    style:
+      top: 76%
+      left: 60%
+      "--mdc-icon-size": 34px
+    tap_action:
+      action: more-info
+
+  # ---- Pulsante: avvia pulizia ----
+  - type: icon
+    icon: mdi:play-circle
+    title: Avvia pulizia
+    style:
+      top: 93%
+      left: 88%
+      "--mdc-icon-size": 32px
+      color: "#27ae60"
+    tap_action:
+      action: call-service
+      service: vacuum.start
+      target:
+        entity_id: vacuum.silvio
+
+  # ---- Pulsante: rientro alla base ----
+  - type: icon
+    icon: mdi:home-import-outline
+    title: Torna alla base
+    style:
+      top: 93%
+      left: 94%
+      "--mdc-icon-size": 32px
+      color: "#2980b9"
+    tap_action:
+      action: call-service
+      service: vacuum.return_to_base
+      target:
+        entity_id: vacuum.silvio

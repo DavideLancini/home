@@ -1,0 +1,270 @@
+# Dashboard principale di Home Assistant.
+#
+# Sostituisce l'overview auto-generata, che elenca ogni entità senza gerarchia.
+# Organizzata per uso, non per dominio: quello che guardi spesso in alto,
+# la diagnostica in fondo.
+#
+# Installazione: dashboard → menu ⋮ → "Modifica dashboard" → menu ⋮ →
+# "Controllo interfaccia non elaborato" → incolla tutto → Salva.
+
+views:
+  - title: Casa
+    path: casa
+    icon: mdi:home
+    type: sections
+    max_columns: 3
+    sections:
+      # ---------------------------------------------------------------
+      - type: grid
+        cards:
+          - type: heading
+            heading: Adesso
+            heading_style: title
+
+          - type: tile
+            entity: weather.forecast_home
+            features_position: bottom
+            vertical: false
+
+          - type: tile
+            entity: person.davide
+            name: Davide
+            icon: mdi:account
+            state_content:
+              - state
+              - last_changed
+
+          - type: tile
+            entity: sensor.razr_battery_level
+            name: Telefono
+            icon: mdi:cellphone
+            color: >-
+              {{ 'red' if states('sensor.razr_battery_level')|int < 20
+                 else 'green' }}
+
+      # ---------------------------------------------------------------
+      - type: grid
+        cards:
+          - type: heading
+            heading: Silvio
+            heading_style: title
+            icon: mdi:robot-vacuum
+
+          - type: tile
+            entity: vacuum.silvio
+            name: Aspirapolvere
+            features:
+              - type: vacuum-commands
+                commands:
+                  - start_pause
+                  - stop
+                  - return_home
+                  - locate
+
+          - type: tile
+            entity: sensor.silvio_batteria
+            name: Batteria
+
+          - type: tile
+            entity: sensor.silvio_current_room
+            name: Posizione
+            icon: mdi:map-marker
+
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: vacuum.silvio
+                state_not: docked
+            card:
+              type: tile
+              entity: sensor.silvio_avanzamento_della_pulizia
+              name: Avanzamento
+
+      # ---------------------------------------------------------------
+      - type: grid
+        cards:
+          - type: heading
+            heading: Manutenzione robot
+            heading_style: subtitle
+            icon: mdi:wrench
+
+          - type: entities
+            entities:
+              - entity: binary_sensor.silvio_panno_attaccato
+                name: Panno
+              - entity: binary_sensor.silvio_contenitore_dell_acqua_collegato
+                name: Serbatoio acqua
+              - entity: binary_sensor.silvio_dock_clean_water_box
+                name: Acqua pulita
+              - entity: binary_sensor.silvio_dock_dirty_water_box
+                name: Acqua sporca
+              - entity: sensor.silvio_dock_strainer_time_left
+                name: Filtro
+              - entity: sensor.silvio_area_di_pulizia_totale
+                name: Totale pulito
+            state_color: true
+
+      # ---------------------------------------------------------------
+      - type: grid
+        cards:
+          - type: heading
+            heading: Media
+            heading_style: title
+            icon: mdi:play-circle
+
+          - type: tile
+            entity: media_player.tv_del_soggiorno
+            name: TV salotto
+            features:
+              - type: media-player-volume-slider
+
+          - type: tile
+            entity: media_player.cucina
+            name: Google Home cucina
+            features:
+              - type: media-player-volume-slider
+
+      # ---------------------------------------------------------------
+      - type: grid
+        cards:
+          - type: heading
+            heading: Lista della spesa
+            heading_style: subtitle
+            icon: mdi:cart
+
+          - type: todo-list
+            entity: todo.shopping_list
+
+  # =================================================================
+  - title: Mappa
+    path: mappa
+    icon: mdi:floor-plan
+    cards:
+      - type: picture-elements
+        image: /local/planimetria.png
+        elements:
+          - type: state-icon
+            entity: vacuum.silvio
+            title: Silvio
+            style:
+              top: 30%
+              left: 77%
+              "--mdc-icon-size": 40px
+            tap_action:
+              action: more-info
+
+          - type: state-label
+            entity: sensor.silvio_current_room
+            prefix: "Silvio: "
+            style:
+              top: 6%
+              left: 77%
+              font-size: 13px
+              color: "#2c3e50"
+              background: rgba(255,255,255,0.85)
+              border-radius: 6px
+              padding: 3px 8px
+
+          - type: state-icon
+            entity: media_player.tv_del_soggiorno
+            title: TV
+            style:
+              top: 52%
+              left: 88%
+              "--mdc-icon-size": 34px
+            tap_action:
+              action: more-info
+
+          - type: state-icon
+            entity: media_player.cucina
+            title: Google Home Mini
+            style:
+              top: 86%
+              left: 28%
+              "--mdc-icon-size": 34px
+            tap_action:
+              action: more-info
+
+          - type: state-icon
+            entity: person.davide
+            title: Davide
+            style:
+              top: 76%
+              left: 60%
+              "--mdc-icon-size": 34px
+            tap_action:
+              action: more-info
+
+  # =================================================================
+  - title: Sistema
+    path: sistema
+    icon: mdi:cog
+    type: sections
+    max_columns: 2
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: Aggiornamenti
+            heading_style: title
+            icon: mdi:package-up
+
+          - type: entities
+            entities:
+              - update.home_assistant_core_update
+              - update.home_assistant_operating_system_update
+              - update.home_assistant_supervisor_update
+              - update.matter_server_update
+            state_color: true
+
+      - type: grid
+        cards:
+          - type: heading
+            heading: Rete
+            heading_style: title
+            icon: mdi:wan
+
+          - type: entities
+            entities:
+              - entity: binary_sensor.upnp_device_wan_status
+                name: Stato WAN
+              - entity: sensor.upnp_device_external_ip
+                name: IP pubblico
+              - entity: sensor.upnp_device_download_speed
+                name: Download
+              - entity: sensor.upnp_device_upload_speed
+                name: Upload
+            state_color: true
+
+      - type: grid
+        cards:
+          - type: heading
+            heading: Automazioni
+            heading_style: subtitle
+            icon: mdi:robot
+
+          - type: entities
+            entities:
+              - entity: automation.notifica_all_avvio_di_home_assistant
+                name: Avvio HA
+              - entity: automation.avvisa_quando_il_telefono_e_quasi_scarico
+                name: Batteria scarica
+              - entity: automation.notifica_arrivo_a_casa
+                name: Arrivo a casa
+              - entity: automation.notifica_uscita_da_casa
+                name: Uscita da casa
+            state_color: true
+
+      - type: grid
+        cards:
+          - type: heading
+            heading: Sole
+            heading_style: subtitle
+            icon: mdi:weather-sunset
+
+          - type: entities
+            entities:
+              - entity: sensor.sun_next_rising
+                name: Alba
+              - entity: sensor.sun_next_setting
+                name: Tramonto
