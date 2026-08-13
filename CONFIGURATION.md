@@ -105,7 +105,7 @@ Non serve Telegram: le notifiche push dell'app funzionano già.
 
 ## Automazioni attive
 
-Definite in `automations.yaml`:
+Definite in `automations.yaml`. Il sorgente delle automazioni del robot è versionato in [`automations/silvio.yaml`](automations/silvio.yaml).
 
 | Automazione | Quando scatta |
 |---|---|
@@ -113,8 +113,43 @@ Definite in `automations.yaml`:
 | Batteria telefono scarica | Sotto il 15% mentre non è in carica |
 | Notifica arrivo a casa | `person.davide` passa a `home` |
 | Notifica uscita da casa | `person.davide` passa a `not_home` da 5 minuti |
+| Silvio - inizio pulizia | Il robot passa a `cleaning`, da qualunque comando |
+| Silvio - pulizia completata | Rientro alla base da `returning`, con m² e minuti |
+| Silvio - errore | `sensor.silvio_errore_aspirapolvere` diverso da `none` |
+| Silvio - acqua esaurita | Serbatoio dell'acqua pulita vuoto |
+| Silvio - acqua sporca piena | Serbatoio di recupero da svuotare |
+| Silvio - manutenzione | Sabato mattina, se un consumabile ha superato la vita utile |
 
-Le ultime due sono segnaposto: per ora mandano solo una notifica, diventeranno scenari veri quando ci saranno luci, serratura e prese da comandare.
+Le automazioni del robot sono **solo informative**: nessun avvio automatico, per non interferire con la programmazione impostata nell'app Roborock.
+
+Note sulle scelte:
+
+- *Pulizia completata* scatta sulla transizione `returning → docked`, non su `docked` da qualunque stato: altrimenti notificherebbe a ogni ricarica
+- *Manutenzione* è un promemoria settimanale invece di una notifica per ogni consumabile, per non moltiplicare gli avvisi. I sensori riportano le **ore residue**: un valore negativo significa vita utile già superata
+- Le notifiche usano `tag`, così quelle della stessa categoria si sostituiscono invece di accumularsi
+
+Per ricaricarle dopo una modifica, senza riavviare tutto HA:
+
+```bash
+curl -X POST -H "Authorization: Bearer $TOKEN" \
+  http://192.168.1.37/api/services/automation/reload
+```
+
+## Dashboard
+
+L'overview predefinita è stata sostituita con una configurazione esplicita, versionata in [`dashboard/overview.yaml`](dashboard/overview.yaml). Tre viste:
+
+| Vista | Contenuto |
+|---|---|
+| **Casa** | Meteo, presenza, batteria telefono; robot con comandi e manutenzione; media; lista della spesa |
+| **Mappa** | Planimetria con icone di stato sovrapposte (`picture-elements`) |
+| **Sistema** | Aggiornamenti, stato WAN, automazioni, alba/tramonto |
+
+La planimetria è in `/config/www/planimetria.png`, servita come `/local/planimetria.png`. **HA registra la cartella `www` solo al riavvio**: dopo averci messo un file serve `ha core restart`, altrimenti risponde `404`.
+
+Le dashboard in Home Assistant sono **globali, non per-utente**: non esistono configurazioni separate per account.
+
+Per reinstallarla dopo una modifica al file si usa il servizio WebSocket `lovelace/config/save` con `url_path: null` (la dashboard predefinita).
 
 Per ricaricarle dopo una modifica, senza riavviare tutto HA:
 

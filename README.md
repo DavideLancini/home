@@ -27,8 +27,9 @@ Domotica di casa: Home Assistant su un mini PC con Proxmox, accessibile da inter
 
 Base funzionante dall'11 agosto 2026: Proxmox 9.2.2, Home Assistant OS 18.2, accesso remoto attivo.
 
-Configurati: aree, presenza dal telefono, notifiche push, quattro automazioni.
+Configurati: aree, presenza dal telefono, notifiche push, dieci automazioni.
 Collegati: robot aspirapolvere Roborock, smart TV (DLNA), Google Home Mini.
+Dashboard personalizzata con planimetria interattiva.
 
 **Nessun backup attivo, per scelta** — vedi [CONFIGURATION.md](CONFIGURATION.md).
 

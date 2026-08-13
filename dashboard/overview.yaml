@@ -253,6 +253,18 @@ views:
                 name: Arrivo a casa
               - entity: automation.notifica_uscita_da_casa
                 name: Uscita da casa
+              - entity: automation.silvio_inizio_pulizia
+                name: Silvio - inizio
+              - entity: automation.silvio_pulizia_completata
+                name: Silvio - fine
+              - entity: automation.silvio_errore
+                name: Silvio - errore
+              - entity: automation.silvio_acqua_esaurita
+                name: Silvio - acqua finita
+              - entity: automation.silvio_serbatoio_acqua_sporca_pieno
+                name: Silvio - acqua sporca
+              - entity: automation.silvio_consumabili_da_sostituire
+                name: Silvio - manutenzione
             state_color: true
 
       - type: grid

@@ -1,0 +1,138 @@
+# Automazioni del robot aspirapolvere — solo informative.
+#
+# La programmazione delle pulizie resta nell'app Roborock: qui non ci sono
+# avvii automatici, per non interferire con quella.
+
+- id: silvio_inizio_pulizia
+  alias: Silvio - inizio pulizia
+  description: Notifica quando il robot parte, qualunque sia l'origine del comando.
+  triggers:
+    - trigger: state
+      entity_id: vacuum.silvio
+      to: cleaning
+  actions:
+    - action: notify.mobile_app_razr
+      data:
+        title: Silvio ha iniziato
+        message: >-
+          Pulizia avviata
+          {%- set r = states('sensor.silvio_current_room') %}
+          {%- if r not in ['unknown', 'unavailable', 'none'] %} da {{ r }}{% endif %}.
+        data:
+          notification_icon: mdi:robot-vacuum
+          tag: silvio-stato
+
+- id: silvio_fine_pulizia
+  alias: Silvio - pulizia completata
+  description: >-
+    Notifica al rientro alla base dopo una pulizia, con i metri quadri puliti.
+    Il trigger è il rientro da 'returning', per non scattare a ogni ricarica.
+  triggers:
+    - trigger: state
+      entity_id: vacuum.silvio
+      from: returning
+      to: docked
+  actions:
+    - action: notify.mobile_app_razr
+      data:
+        title: Silvio ha finito
+        message: >-
+          Puliti {{ states('sensor.silvio_area_di_pulizia') }} m²
+          in {{ (states('sensor.silvio_tempo_di_pulizie') | float(0) * 60) | round }} minuti.
+        data:
+          notification_icon: mdi:check-circle
+          tag: silvio-stato
+
+- id: silvio_errore
+  alias: Silvio - errore
+  description: Il robot si è bloccato o segnala un guasto.
+  triggers:
+    - trigger: state
+      entity_id: sensor.silvio_errore_aspirapolvere
+      not_to:
+        - none
+        - unknown
+        - unavailable
+  conditions:
+    - condition: template
+      value_template: "{{ trigger.to_state.state not in ['none', 'unknown', 'unavailable'] }}"
+  actions:
+    - action: notify.mobile_app_razr
+      data:
+        title: Silvio è in errore
+        message: "{{ states('sensor.silvio_errore_aspirapolvere') }}"
+        data:
+          notification_icon: mdi:alert
+          color: red
+          tag: silvio-errore
+
+- id: silvio_acqua_finita
+  alias: Silvio - acqua esaurita
+  triggers:
+    - trigger: state
+      entity_id: binary_sensor.silvio_mancanza_d_acqua
+      to: "on"
+  actions:
+    - action: notify.mobile_app_razr
+      data:
+        title: Silvio - acqua finita
+        message: Il serbatoio dell'acqua pulita è vuoto.
+        data:
+          notification_icon: mdi:water-alert
+          tag: silvio-acqua
+
+- id: silvio_acqua_sporca
+  alias: Silvio - serbatoio acqua sporca pieno
+  triggers:
+    - trigger: state
+      entity_id: binary_sensor.silvio_dock_dirty_water_box
+      to: "on"
+  actions:
+    - action: notify.mobile_app_razr
+      data:
+        title: Silvio - da svuotare
+        message: Il serbatoio dell'acqua sporca è pieno.
+        data:
+          notification_icon: mdi:water-off
+          tag: silvio-acqua
+
+- id: silvio_manutenzione
+  alias: Silvio - consumabili da sostituire
+  description: >-
+    Controllo settimanale dei consumabili. I sensori riportano le ore residue:
+    sotto zero significa che la vita utile è già stata superata.
+    Un solo promemoria a settimana invece di una notifica per ogni soglia.
+  triggers:
+    - trigger: time
+      at: "10:00:00"
+  conditions:
+    - condition: time
+      weekday:
+        - sat
+    - condition: template
+      value_template: >-
+        {{ [
+             states('sensor.silvio_dock_strainer_time_left'),
+             states('sensor.silvio_tempo_residuo_della_spazzola_principale'),
+             states('sensor.silvio_tempo_residuo_della_spazzola_laterale')
+           ] | map('float', 999) | select('<', 0) | list | count > 0 }}
+  actions:
+    - action: notify.mobile_app_razr
+      data:
+        title: Silvio - manutenzione
+        message: >-
+          Da sostituire:
+          {%- set parts = [] %}
+          {%- if states('sensor.silvio_dock_strainer_time_left') | float(999) < 0 %}
+            {%- set parts = parts + ['filtro'] %}
+          {%- endif %}
+          {%- if states('sensor.silvio_tempo_residuo_della_spazzola_principale') | float(999) < 0 %}
+            {%- set parts = parts + ['spazzola principale'] %}
+          {%- endif %}
+          {%- if states('sensor.silvio_tempo_residuo_della_spazzola_laterale') | float(999) < 0 %}
+            {%- set parts = parts + ['spazzola laterale'] %}
+          {%- endif %}
+          {{ parts | join(', ') }}.
+        data:
+          notification_icon: mdi:wrench
+          tag: silvio-manutenzione
