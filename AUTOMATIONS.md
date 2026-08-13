@@ -1,15 +1,17 @@
 # Dispositivi e automazioni
 
-**Nulla di quanto segue è ancora implementato.** Home Assistant è installato e raggiungibile, ma non ha ancora dispositivi collegati. Questo file raccoglie il piano e gli esempi di configurazione da usare quando l'hardware arriverà.
+Alcuni dispositivi sono collegati (vedi [CONFIGURATION.md](CONFIGURATION.md)), ma **nessuna delle automazioni descritte qui è ancora implementata**. Questo file raccoglie il piano e gli esempi di configurazione da usare man mano che l'hardware arriva.
 
 ## Dispositivi da integrare
 
-| Dispositivo | Integrazione prevista | Note |
+| Dispositivo | Integrazione prevista | Stato |
 |---|---|---|
-| Smart plug (condizionatori) | Tuya / SmartLife | Con monitoraggio consumi |
-| Smart plug (lavatrice, lavastoviglie) | Tuya / SmartLife | Notifica fine ciclo dal calo di potenza |
-| Videocamera animali | RTSP/HTTP | |
-| Smart TV | HDMI-CEC / Tuya | |
+| Robot aspirapolvere | `roborock` | ✅ collegato |
+| Smart TV | DLNA | ✅ collegato (solo invio contenuti) |
+| Google Home Mini | Google Cast | ✅ collegato |
+| Smart plug (condizionatori) | Tuya / LocalTuya | ⏳ bloccato sulle chiavi |
+| Smart plug (lavatrice, lavastoviglie) | Tuya / LocalTuya | ⏳ bloccato sulle chiavi |
+| Videocamera animali | RTSP/HTTP | — |
 | Luci smart | Zigbee2MQTT | Preferito a WiFi, vedi [DECISIONS.md](DECISIONS.md) |
 | Alexa | Emulated Hue | HA espone i device ad Alexa, non il contrario |
 | Google Assistant | Google Home | Richiede OAuth, passa dal cloud |
@@ -23,6 +25,63 @@
 - **Microfono e cassa USB** — per l'assistente vocale
 
 ## Progetti pianificati
+
+### Robot aspirapolvere — automazioni possibili subito
+
+Silvio è già collegato e non richiede altro hardware. Alcune idee realizzabili con le entità disponibili:
+
+```yaml
+# Pulisce quando esci di casa, ma solo nei giorni feriali
+- alias: "Silvio - pulizia quando esco"
+  triggers:
+    - trigger: state
+      entity_id: person.davide
+      from: home
+      to: not_home
+      for: "00:10:00"
+  conditions:
+    - condition: time
+      weekday: [mon, tue, wed, thu, fri]
+      after: "09:00:00"
+      before: "17:00:00"
+    - condition: state
+      entity_id: vacuum.silvio
+      state: docked
+  actions:
+    - action: vacuum.start
+      target:
+        entity_id: vacuum.silvio
+
+# Avvisa quando ha finito
+- alias: "Silvio - pulizia completata"
+  triggers:
+    - trigger: state
+      entity_id: vacuum.silvio
+      to: docked
+      from: returning
+  actions:
+    - action: notify.mobile_app_razr
+      data:
+        title: Pulizia completata
+        message: >-
+          Puliti {{ states('sensor.silvio_area_di_pulizia') }} m².
+
+# Manutenzione: avvisa quando un consumabile è esaurito
+- alias: "Silvio - manutenzione necessaria"
+  triggers:
+    - trigger: numeric_state
+      entity_id:
+        - sensor.silvio_dock_strainer_time_left
+        - sensor.silvio_dock_maintenance_brush_time_left
+      below: 0
+  actions:
+    - action: notify.mobile_app_razr
+      data:
+        title: Silvio - manutenzione
+        message: "{{ trigger.to_state.name }} da sostituire."
+```
+
+Nota: le stanze note al robot vengono dalla sua mappa e non coincidono con le aree di HA. Per pulire una stanza specifica serve `vacuum.send_command` con `app_segment_clean` e l'ID del segmento.
 
 ### Controllo condizionatori portatili
 

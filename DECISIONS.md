@@ -137,10 +137,39 @@ Plug B: uuid=t6ccXvSNh5Te  local_key=2rfiUwDwvTmv0cGo
 | Opzione | Costo | Note |
 |---|---|---|
 | **USB-TTL** | ~5 € | Flash diretto, deterministico. Salta Cloudcutter. Mappatura GPIO già nota |
+| **Raspberry Pi Zero 2 W** | già posseduto | Fa da programmatore seriale via GPIO 14/15. Vedi sotto |
 | **ESP32 + Lightleak** | ~5 € | Dump wireless della flash → costruzione profilo → flash. Tre fasi, la seconda difficile. L'ESP32 resta utile per ESPHome |
 | **Issue sul repository** | gratis | Serve comunque un dump per costruire il profilo |
 
 Il Raspberry Pico 2 **non è utilizzabile** per Lightleak: serve un chip supportato da LibreTiny (ESP32/ESP8266/BK7231/RTL8710B), e l'RP2350 non lo è — nemmeno nella variante Pico 2 W.
+
+### Zero 2 W come programmatore seriale — preparato, non ancora operativo
+
+Lo Zero 2 W può sostituire l'adattatore USB-TTL: ha una UART hardware sui GPIO. La microSD è stata preparata con [`scripts/prepare-zero2w-sd.sh`](scripts/prepare-zero2w-sd.sh), ma **al 13 agosto 2026 non è ancora stato raggiunto in rete**.
+
+Collegamenti previsti (plug **scollegata dalla 230 V**):
+
+| Zero 2 W | Pin fisico | Modulo CB2S |
+|---|---|---|
+| GPIO14 TXD | 8 | RX (pin P11 del modulo) |
+| GPIO15 RXD | 10 | TX (pin P10 del modulo) |
+| GND | 6 | GND |
+| 3.3V | 1 | 3.3V / VBAT |
+
+TX e RX vanno **incrociati**. Serve inoltre portare **CEN a GND** per un istante, per far entrare il chip in modalità programmazione.
+
+Sulla plug B i pad `3.3V`, `GND` e `CEN` sono serigrafati; `RX` e `TX` no, ma corrispondono ai pin **P10** e **P11** del modulo.
+
+**Attenzione all'alimentazione:** il BK7231 assorbe oltre 50 mA di picco e il pin 3.3V dello Zero eroga poco. Un flash che si interrompe a metà è quasi sempre questo — serve alimentazione 3.3 V esterna con masse in comune.
+
+Il primo comando dev'essere un **backup**, non il flash: permette di tornare indietro e rivela la mappa GPIO reale della revisione.
+
+**Problemi incontrati nella preparazione:**
+
+- `custom.toml` **non funziona** con un'immagine scritta via `dd`: quel meccanismo richiede il `firstrun.sh` generato da Raspberry Pi Imager. La configurazione va scritta direttamente sul filesystem (connessione in `/etc/NetworkManager/system-connections/` con permessi `600`, chiave in `/home/pi/.ssh/authorized_keys`, shell dell'utente `pi` da `nologin` a `/bin/bash`)
+- L'utente risultante è **`pi`**, non quello previsto da `custom.toml`
+- Una microSD si è rivelata guasta: si scollegava a ogni scrittura mentre la lettura funzionava — NAND a fine vita
+- LED verde **fisso** = boot non partito, quasi sempre contatto della microSD. Lampeggio irregolare = sta leggendo, tutto bene
 
 ### Ambiente Cloudcutter — note operative
 

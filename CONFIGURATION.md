@@ -34,14 +34,55 @@ I tre ID in inglese sono le aree create dall'onboarding, rinominate. I balconi n
 
 | Dispositivo | Integrazione | Area |
 |---|---|---|
+| **Silvio** (robot aspirapolvere) | `roborock` — cloud | Salotto |
+| Silvio Dock | `roborock` | Salotto |
 | Tv del soggiorno | DLNA (`dlna_dmr`) | Salotto |
 | Google Home Mini | Google Cast | Cucina |
 | Razr (telefono) | `mobile_app` | — |
 | ASKEY RTV1907VW (modem) | UPnP | — |
-
-Non confermato, in attesa nella lista dei dispositivi scoperti: `Fastweb_DLNA_Server`.
+| Fastweb_DLNA_Server | `dlna_dms` | — |
 
 La TV è collegata solo via DLNA, che permette di inviarle contenuti ma non di accenderla o cambiare sorgente. Se è Samsung o LG esiste un'integrazione dedicata più completa.
+
+### Silvio — robot aspirapolvere
+
+Roborock `roborock.vacuum.a101`, collegato tramite l'integrazione ufficiale (passa dal cloud Roborock). Espone **44 entità**, fra cui:
+
+| Entità | Cosa fa |
+|---|---|
+| `vacuum.silvio` | Controllo principale — avvio, stop, rientro alla base |
+| `sensor.silvio_batteria` | Livello batteria |
+| `sensor.silvio_current_room` | Stanza in cui si trova |
+| `sensor.silvio_area_di_pulizia_totale` | m² puliti da sempre |
+| `image.silvio_map_0` | Mappa della casa |
+| `select.silvio_cleaning_mode` | Aspirazione, lavaggio, o entrambi |
+| `binary_sensor.silvio_dock_*` | Stato serbatoi, panno, fluido di pulizia |
+| `sensor.silvio_dock_strainer_time_left` | Vita residua del filtro |
+
+Le entità del dock riportano anche la manutenzione: `strainer_time_left` in negativo significa filtro da sostituire.
+
+Le stanze note al robot (`Soggiorno`, ecc.) sono definite nella sua mappa e **non coincidono** con le aree di Home Assistant — sono due registri separati.
+
+### Smart plug — non ancora collegate
+
+Le due plug LSC funzionano regolarmente con l'app LSC Smart Connect, ma **non sono in Home Assistant**. Servirebbero le `local_key`, che genera il cloud Tuya.
+
+| Plug | IP | `device_id` | Protocollo |
+|---|---|---|---|
+| A | `192.168.1.15` | `bfaf68f4a8c2054efbpvy8` | 3.4 |
+| B | non in rete al momento | — | — |
+
+Le chiavi estratte da Cloudcutter **non sono utilizzabili**: sono temporanee, generate dall'exploit, e il loro `device_id` non corrisponde a quello reale.
+
+**Tre strade, tutte con un ostacolo:**
+
+1. **Tuya IoT Platform** (`iot.tuya.com`) — dà le `local_key` per LocalTuya. Tentato senza successo: il QR code per collegare l'account scade immediatamente (`QR code has expired`). Da riprovare tenendo l'app già aperta sulla schermata di scansione, e verificando che il data center sia `Central Europe`
+2. **Integrazione Tuya ufficiale in HA** — non richiede la piattaforma sviluppatori, bastano le credenziali dell'app. Passa dal cloud
+3. **Firmware locale** (OpenBeken) — la soluzione definitiva, ma richiede il flash seriale. Vedi [DECISIONS.md](DECISIONS.md)
+
+Le app LSC Smart Connect sono costruite sulla piattaforma Tuya (white label), quindi al passaggio di collegamento va usata **quella app**, non SmartLife.
+
+**Lo storico dei consumi dei due mesi passati non è recuperabile dalle plug**: conservano solo il totale cumulativo, la serie temporale sta sui server Tuya. Potrebbe essere estraibile via API una volta risolto l'accesso alla piattaforma.
 
 ## Presenza
 
