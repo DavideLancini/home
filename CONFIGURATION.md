@@ -139,10 +139,13 @@ curl -X POST -H "Authorization: Bearer $TOKEN" \
 
 | Entità | Uso |
 |---|---|
-| `todo.shopping_list` | Lista della spesa estemporanea |
-| `todo.home` | Cose da fare in casa — 36 task |
+| `todo.home` | Cose da fare in casa — 41 task |
 | `todo.dispensa` | Inventario dispensa — 111 prodotti |
 | `todo.dispensa_stagionale` | Prodotti stagionali o occasionali — 14 |
+
+Tutte create con l'integrazione **Local To-do**, che permette liste multiple. L'integrazione `shopping_list` (lista predefinita, singola e non duplicabile) è stata **rimossa**: la sua config entry si elimina come qualunque altra, con un riavvio a seguire.
+
+Nota sui conteggi: lo stato di un'entità `todo` riporta le voci **non completate**, non il totale. Per la dispensa significa che il numero visibile è "quanto manca".
 
 ### Dispensa: la logica è invertita
 

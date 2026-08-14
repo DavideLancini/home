@@ -128,17 +128,6 @@ views:
       - type: grid
         cards:
           - type: heading
-            heading: Lista della spesa
-            heading_style: subtitle
-            icon: mdi:cart
-
-          - type: todo-list
-            entity: todo.shopping_list
-
-      # ---------------------------------------------------------------
-      - type: grid
-        cards:
-          - type: heading
             heading: Da fare in casa
             heading_style: subtitle
             icon: mdi:clipboard-check
