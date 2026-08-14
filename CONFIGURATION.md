@@ -135,6 +135,30 @@ curl -X POST -H "Authorization: Bearer $TOKEN" \
   http://192.168.1.37/api/services/automation/reload
 ```
 
+## Liste
+
+| Entità | Uso |
+|---|---|
+| `todo.shopping_list` | Lista della spesa estemporanea |
+| `todo.home` | Cose da fare in casa — 36 task |
+| `todo.dispensa` | Inventario dispensa — 111 prodotti |
+| `todo.dispensa_stagionale` | Prodotti stagionali o occasionali — 14 |
+
+### Dispensa: la logica è invertita
+
+Le liste `dispensa` non sono liste della spesa: sono un **inventario permanente**. Le voci non si aggiungono né si eliminano — sono sempre tutte lì, e cambia solo il loro stato:
+
+- **Spuntato** = ce l'ho
+- **Non spuntato** = da comprare
+
+Prima della spesa si passa la lista segnando cosa c'è; quel che resta non spuntato è la lista della spesa.
+
+I prodotti sono ordinati **per categoria** come nel file sorgente, e alfabeticamente all'interno di ciascuna. La categoria è nella descrizione di ogni voce.
+
+Sorgente: `~/0Projects/lista-spesa/lista-spesa.md`. Per ripopolarle da capo esiste lo script che le ha generate — le liste vanno però svuotate prima, perché `todo.add_item` non deduplica.
+
+**Nota:** le etichette degli stati (*Attivo* / *Completato*) non sono personalizzabili. Sono valori fissi del core di Home Assistant (`needs_action` / `completed`), tradotti dal frontend: non esiste un'opzione per rinominarli, né globalmente né per singola lista.
+
 ## Dashboard
 
 L'overview predefinita è stata sostituita con una configurazione esplicita, versionata in [`dashboard/overview.yaml`](dashboard/overview.yaml). Tre viste:

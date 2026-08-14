@@ -147,6 +147,44 @@ views:
             entity: todo.home
 
   # =================================================================
+  - title: Dispensa
+    path: dispensa
+    icon: mdi:fridge
+    type: sections
+    max_columns: 2
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: Dispensa
+            heading_style: title
+            icon: mdi:fridge
+            badges:
+              - type: entity
+                entity: todo.dispensa
+
+          - type: markdown
+            content: >-
+              Le voci **non spuntate** sono quelle da comprare.
+              Prima della spesa, segna quello che hai.
+
+          - type: todo-list
+            entity: todo.dispensa
+
+      - type: grid
+        cards:
+          - type: heading
+            heading: Stagionale o specifico
+            heading_style: title
+            icon: mdi:calendar-clock
+            badges:
+              - type: entity
+                entity: todo.dispensa_stagionale
+
+          - type: todo-list
+            entity: todo.dispensa_stagionale
+
+  # =================================================================
   - title: Mappa
     path: mappa
     icon: mdi:floor-plan
