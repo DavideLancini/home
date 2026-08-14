@@ -196,6 +196,28 @@ Si attivano da `input_boolean` (per quelli manuali), da orario, o da presenza ri
         entity_id: lock.porta_principale
 ```
 
+### Assistente vocale con AI
+
+L'obiettivo è un dispositivo tipo Google Home o Alexa, ma con un LLM al posto dell'assistente commerciale, e soprattutto **capace di interagire con le liste**: chiedere cosa manca in dispensa, segnare un prodotto come finito, aggiungere un task — a voce.
+
+È il motivo per cui le liste vivono in Home Assistant e non più in un file: le entità `todo` espongono già `get_items`, `add_item` e `update_item`, che un LLM può usare come strumenti.
+
+**I pezzi della catena** (HA li supporta tutti nativamente via *Assist*):
+
+| Fase | Opzioni locali |
+|---|---|
+| Wake word | openWakeWord, microWakeWord |
+| Riconoscimento vocale | Whisper (add-on) |
+| Ragionamento | Ollama sul mini PC, come conversation agent |
+| Sintesi vocale | Piper (add-on) |
+
+**Hardware**, due strade:
+
+- **ESP32-S3 dedicato** — ESPHome Voice PE (~60 €) o assemblato: sta in una stanza, sempre in ascolto
+- **Microfono e cassa USB sul mini PC** — costa meno ma il dispositivo è dove sta il server
+
+**Il vincolo è la CPU.** L'i5-6400T non ha GPU utilizzabile per l'inferenza, quindi servono modelli piccoli (`llama3.2:3b`, `qwen2.5:3b`). La latenza sarà nell'ordine dei secondi, accettabile per comandi ma non per conversazione fluida. In alternativa si può usare un LLM via API, rinunciando al funzionamento offline.
+
 ## Idee non ancora valutate
 
 - Sensori di perdita d'acqua sotto lavatrice e caldaia — costano poco e prevengono danni seri

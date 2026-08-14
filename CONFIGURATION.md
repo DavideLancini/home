@@ -155,7 +155,9 @@ Prima della spesa si passa la lista segnando cosa c'è; quel che resta non spunt
 
 I prodotti sono ordinati **per categoria** come nel file sorgente, e alfabeticamente all'interno di ciascuna. La categoria è nella descrizione di ogni voce.
 
-Sorgente: `~/0Projects/lista-spesa/lista-spesa.md`. Per ripopolarle da capo esiste lo script che le ha generate — le liste vanno però svuotate prima, perché `todo.add_item` non deduplica.
+**Home Assistant è ora la fonte autorevole.** Il file `~/0Projects/lista-spesa/lista-spesa.md` è servito solo per il caricamento iniziale e non va più aggiornato: le liste si modificano dall'interfaccia di HA, e in prospettiva tramite un assistente vocale (vedi [AUTOMATIONS.md](AUTOMATIONS.md)).
+
+Lo script `scripts/popola-dispensa.py` resta come riferimento del caricamento iniziale. Rilanciarlo duplicherebbe le voci, perché `todo.add_item` non deduplica — andrebbero svuotate prima le liste.
 
 **Nota:** le etichette degli stati (*Attivo* / *Completato*) non sono personalizzabili. Sono valori fissi del core di Home Assistant (`needs_action` / `completed`), tradotti dal frontend: non esiste un'opzione per rinominarli, né globalmente né per singola lista.
 
