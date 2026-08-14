@@ -15,7 +15,7 @@ Alcuni dispositivi sono collegati (vedi [CONFIGURATION.md](CONFIGURATION.md)), m
 | Luci smart | Zigbee2MQTT | Preferito a WiFi, vedi [DECISIONS.md](DECISIONS.md) |
 | Alexa | Emulated Hue | HA espone i device ad Alexa, non il contrario |
 | Google Assistant | Google Home | Richiede OAuth, passa dal cloud |
-| Assistente vocale | ESPHome + mic/speaker | Oppure Ollama locale sul mini PC |
+| Assistente vocale | ESPHome + mic/speaker | LLM su server esterno, non sul mini PC |
 
 ## Hardware da procurare
 
@@ -204,19 +204,24 @@ L'obiettivo è un dispositivo tipo Google Home o Alexa, ma con un LLM al posto d
 
 **I pezzi della catena** (HA li supporta tutti nativamente via *Assist*):
 
-| Fase | Opzioni locali |
-|---|---|
-| Wake word | openWakeWord, microWakeWord |
-| Riconoscimento vocale | Whisper (add-on) |
-| Ragionamento | Ollama sul mini PC, come conversation agent |
-| Sintesi vocale | Piper (add-on) |
+| Fase | Dove gira | Opzioni |
+|---|---|---|
+| Wake word | mini PC | openWakeWord, microWakeWord |
+| Riconoscimento vocale | mini PC | Whisper (add-on) |
+| **Ragionamento (LLM)** | **altrove** | vedi sotto |
+| Sintesi vocale | mini PC | Piper (add-on) |
 
-**Hardware**, due strade:
+**Il LLM non gira sul mini PC.** L'i5-6400T senza GPU reggerebbe solo modelli da 3B con latenza di secondi. Due strade, entrambe accettabili:
+
+- **Altro server locale con GPU** — mantiene tutto in casa, nessuna dipendenza esterna
+- **API esterna** (OpenAI, Anthropic, altri) — modelli molto più capaci, dipendenza dalla rete **accettata consapevolmente**
+
+Il resto della catena resta comunque locale sul mini PC: wake word, riconoscimento e sintesi vocale non richiedono potenza di calcolo rilevante. Quindi anche con LLM remoto solo il ragionamento passa dalla rete, non l'audio grezzo in continuazione.
+
+**Hardware del dispositivo**, due strade:
 
 - **ESP32-S3 dedicato** — ESPHome Voice PE (~60 €) o assemblato: sta in una stanza, sempre in ascolto
 - **Microfono e cassa USB sul mini PC** — costa meno ma il dispositivo è dove sta il server
-
-**Il vincolo è la CPU.** L'i5-6400T non ha GPU utilizzabile per l'inferenza, quindi servono modelli piccoli (`llama3.2:3b`, `qwen2.5:3b`). La latenza sarà nell'ordine dei secondi, accettabile per comandi ma non per conversazione fluida. In alternativa si può usare un LLM via API, rinunciando al funzionamento offline.
 
 ## Idee non ancora valutate
 
