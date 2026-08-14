@@ -135,6 +135,17 @@ views:
           - type: todo-list
             entity: todo.shopping_list
 
+      # ---------------------------------------------------------------
+      - type: grid
+        cards:
+          - type: heading
+            heading: Da fare in casa
+            heading_style: subtitle
+            icon: mdi:clipboard-check
+
+          - type: todo-list
+            entity: todo.home
+
   # =================================================================
   - title: Mappa
     path: mappa
